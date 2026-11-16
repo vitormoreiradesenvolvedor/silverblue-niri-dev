@@ -75,17 +75,30 @@ step_inir() {
         git clone --depth=1 "${url}" "${dir}" || return 1
     fi
     cd "${dir}" || return 1
-    if [[ -x ./setup ]]; then
-        # Instalacao nao-interativa: alimenta respostas default e evita tty.
-        yes '' | ./setup install < /dev/null || return 1
-    elif [[ -x ./install.sh ]]; then
-        yes '' | ./install.sh < /dev/null || return 1
-    else
-        log "inir: nenhum script 'setup'/'install.sh' no repositorio"
+    if [[ ! -x ./setup ]]; then
+        log "inir: script './setup' nao encontrado no repositorio"
         return 1
     fi
-    # Marca para o autostart do niri saber que o shell existe.
-    command -v qs-rs inir inir-cli >/dev/null 2>&1 || true
+
+    # -y          = assume os defaults, sem perguntar (nao ha tty aqui).
+    # --skip-deps = NAO deixa o setup instalar dependencias.
+    #
+    # O segundo e obrigatorio em sistema atomico: o setup usa o gerenciador de
+    # pacotes da distro e pede senha via sudo. Em Silverblue nao existe `dnf`
+    # utilizavel e o servico roda sem tty, entao o passo travaria. As
+    # dependencias ja vem resolvidas na camada RPM da imagem (niri, Qt6,
+    # pipewire, grim, slurp, wl-clipboard, brightnessctl, playerctl).
+    if ! ./setup install -y --skip-deps < /dev/null; then
+        log "inir: './setup install -y --skip-deps' falhou; tentando sem --skip-deps"
+        ./setup install -y < /dev/null || return 1
+    fi
+
+    # O iNiR exige REINICIAR, nao basta relogar (doc oficial).
+    if command -v notify-send >/dev/null 2>&1; then
+        notify-send -u critical "iNiR instalado" \
+            "Reinicie o computador para o shell carregar. Relogar nao basta." || true
+    fi
+    log "inir: instalado - REINICIE a maquina para o shell subir"
 }
 
 run_step homebrew step_homebrew

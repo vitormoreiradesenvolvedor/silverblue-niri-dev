@@ -14,6 +14,9 @@ para notebook **hibrido Intel+NVIDIA**. Em maquina sem NVIDIA, troque para
 
 ---
 
+> **Instalando no hardware pela primeira vez?** O passo a passo simples,
+> do pendrive ao desktop funcionando, esta em **[INSTALAR.md](INSTALAR.md)**.
+
 ## 1. O que vem na imagem
 
 | Area | Conteudo |
@@ -67,7 +70,7 @@ git push -u origin main
 
 O workflow roda no push, toda segunda-feira as 06:00 UTC e sob demanda
 (`gh workflow run bluebuild`). O resultado vai para
-`ghcr.io/<seu-usuario>/silverblue-niri-dev:latest`.
+`ghcr.io/vitormoreiradesenvolvedor/silverblue-niri-dev:latest`.
 
 > Na primeira execucao, torne o pacote publico:
 > GitHub > seu perfil > **Packages** > `silverblue-niri-dev` > *Package settings* >
@@ -117,7 +120,7 @@ sudo podman run --rm -it --privileged --pull=newer \
   -v "$PWD/output":/output \
   quay.io/centos-bootc/bootc-image-builder:latest \
   --type anaconda-iso \
-  ghcr.io/<seu-usuario>/silverblue-niri-dev:latest
+  ghcr.io/vitormoreiradesenvolvedor/silverblue-niri-dev:latest
 
 # ISO em ./output/bootiso/install.iso
 sudo dd if=output/bootiso/install.iso of=/dev/sdX bs=4M status=progress oflag=direct
@@ -139,14 +142,14 @@ sudo rpm-ostree reset               # DROPA pacotes em camada (ver nota abaixo)
 
 # 1. Primeiro rebase: ainda sem verificacao de assinatura
 sudo rpm-ostree rebase \
-  ostree-unverified-registry:ghcr.io/<seu-usuario>/silverblue-niri-dev:latest
+  ostree-unverified-registry:ghcr.io/vitormoreiradesenvolvedor/silverblue-niri-dev:latest
 
 sudo systemctl reboot
 
 # 2. Depois do boot, com a politica cosign ja dentro da imagem,
 #    passe para a referencia assinada e verificada
 sudo rpm-ostree rebase \
-  ostree-image-signed:docker://ghcr.io/<seu-usuario>/silverblue-niri-dev:latest
+  ostree-image-signed:docker://ghcr.io/vitormoreiradesenvolvedor/silverblue-niri-dev:latest
 
 sudo systemctl reboot
 ```
@@ -169,6 +172,8 @@ sudo rpm-ostree rebase fedora:fedora/44/x86_64/silverblue
 ```
 
 ### Primeiro login
+
+Versao detalhada em [INSTALAR.md](INSTALAR.md).
 
 1. Na tela do GDM, escolha a sessao **niri**.
 2. `custom-first-run.service` (usuario) instala Homebrew, SDKMAN!, rustup e
