@@ -1,0 +1,6 @@
+# URL direta do artefato Linux x64 do Antigravity IDE (.tar.gz, .deb, .rpm,
+# .zip ou AppImage). Obtida em https://antigravity.google/download/ -
+# clique com o botao direito no botao de download do Linux e copie o link.
+# Enquanto esta linha estiver comentada, o IDE e simplesmente omitido da imagem.
+#
+# https://exemplo.invalido/antigravity-linux-x64.tar.gz

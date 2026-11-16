@@ -1,0 +1,13 @@
+[Unit]
+Description=Cria /home/linuxbrew com dono correto para o Homebrew
+After=local-fs.target systemd-user-sessions.service
+ConditionPathExists=/usr/libexec/custom-homebrew-prepare
+ConditionPathExists=!/home/linuxbrew/.linuxbrew/bin/brew
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/libexec/custom-homebrew-prepare
+
+[Install]
+WantedBy=multi-user.target

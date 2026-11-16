@@ -1,0 +1,12 @@
+#!/usr/bin/bash
+set -uo pipefail
+dir="${HOME}/.local/share/inir-repo"
+cd "${dir}" || exit 0
+git pull --ff-only || exit 0
+if command -v inir-cli >/dev/null 2>&1; then
+    inir-cli update || true
+elif command -v inir >/dev/null 2>&1; then
+    inir update || true
+elif [[ -x ./setup ]]; then
+    yes '' | ./setup install < /dev/null || true
+fi

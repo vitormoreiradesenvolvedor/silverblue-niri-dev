@@ -1,0 +1,19 @@
+[Unit]
+Description=Provisiona ferramentas de espaco do usuario (iNiR, Homebrew, SDKMAN, rustup)
+Documentation=file:///usr/libexec/custom-first-run-setup
+After=default.target
+ConditionPathExists=/usr/libexec/custom-first-run-setup
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# Precisa de rede: o alvo roda apos o login, mas o NM pode ainda estar subindo.
+ExecStartPre=/usr/bin/bash -c 'for i in $(seq 1 30); do /usr/bin/curl -fsS --max-time 3 https://api.github.com >/dev/null 2>&1 && exit 0; sleep 2; done; exit 0'
+ExecStart=/usr/libexec/custom-first-run-setup
+TimeoutStartSec=3600
+# Log vai para o journal do usuario: journalctl --user -u custom-first-run
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target

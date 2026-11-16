@@ -1,0 +1,35 @@
+#!/usr/bin/bash
+# Autostart da sessao niri. Chamado por spawn-at-startup no config.kdl.
+set -uo pipefail
+
+# Agente polkit (autenticacao grafica para sudo/gparted/docker rootful).
+# polkit-gnome foi removido do Fedora; mate-polkit e o agente GTK equivalente.
+# Os outros caminhos cobrem base diferente ou retorno do polkit-gnome.
+for agent in \
+    /usr/libexec/polkit-mate-authentication-agent-1 \
+    /usr/libexec/polkit-gnome-authentication-agent-1 \
+    /usr/libexec/polkit-kde-authentication-agent-1 \
+    /usr/bin/lxqt-policykit-agent
+do
+    if [[ -x "${agent}" ]]; then
+        "${agent}" &
+        break
+    fi
+done
+
+# XWayland on-demand para apps X11 (Slack, Teams, IDEs legados)
+command -v xwayland-satellite >/dev/null 2>&1 && xwayland-satellite &
+
+# Applet de rede e bateria
+command -v nm-applet >/dev/null 2>&1 && nm-applet --indicator &
+
+# Desktop shell iNiR (instalado no HOME pelo custom-first-run.service).
+# Ordem de preferencia: wrapper 'inir' > CLI > binario qs-rs.
+for cand in "${HOME}/.local/bin/inir" "${HOME}/.local/bin/inir-cli" "${HOME}/.local/bin/qs-rs" inir inir-cli qs-rs; do
+    if command -v "${cand}" >/dev/null 2>&1; then
+        "${cand}" &
+        break
+    fi
+done
+
+wait

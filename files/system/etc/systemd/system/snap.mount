@@ -1,0 +1,18 @@
+[Unit]
+Description=Bind mount de /var/lib/snapd/snap em /snap (compatibilidade OSTree)
+Documentation=man:snap(8)
+DefaultDependencies=no
+After=systemd-tmpfiles-setup.service local-fs.target
+Requires=systemd-tmpfiles-setup.service
+Before=snapd.service snapd.socket
+ConditionPathIsDirectory=/snap
+
+[Mount]
+What=/var/lib/snapd/snap
+Where=/snap
+Type=none
+Options=bind,rw
+
+[Install]
+WantedBy=multi-user.target
+RequiredBy=snapd.service

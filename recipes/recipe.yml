@@ -1,0 +1,147 @@
+# yaml-language-server: $schema=https://schema.blue-build.org/recipe-v1.json
+---
+name: silverblue-niri-dev
+description: Fedora Silverblue + niri/iNiR + NVIDIA hibrida + toolchains nativos (Docker, Node, C/C++, Mullvad, DBeaver TLS1.0)
+base-image: ghcr.io/ublue-os/silverblue-nvidia-open
+image-version: 44
+
+modules:
+  # ----------------------------------------------------------------------
+  # 1. Arquivos estaticos (repos .repo, systemd units, skel, profile.d)
+  #    Vem primeiro: os .repo precisam existir antes do dnf.
+  # ----------------------------------------------------------------------
+  - type: files
+    files:
+      - source: system
+        destination: /
+
+  # ----------------------------------------------------------------------
+  # 2. Preparacao: chaves GPG dos repos de terceiros, resolucao do
+  #    $releasever do repo Docker, remocao de pacotes conflitantes.
+  # ----------------------------------------------------------------------
+  - type: script
+    scripts:
+      - 10-import-repo-keys.sh
+      - 15-prepare-docker.sh
+
+  # ----------------------------------------------------------------------
+  # 3. Camada RPM
+  # ----------------------------------------------------------------------
+  - type: dnf
+    install:
+      packages:
+        # --- compositor niri + sessao Wayland ---
+        - niri
+        - xwayland-satellite
+        - mate-polkit
+        - pipewire
+        - pipewire-pulseaudio
+        - pipewire-utils
+        - wireplumber
+        - network-manager-applet
+        - brightnessctl
+        - playerctl
+        - grim
+        - slurp
+        - wl-clipboard
+        - fuzzel
+        - ptyxis
+        - xdg-desktop-portal-gtk
+        - xdg-desktop-portal-gnome
+        # --- Qt6 (runtime do shell iNiR / quickshell) ---
+        - qt6-qtbase
+        - qt6-qtdeclarative
+        - qt6-qtsvg
+        - qt6-qtwayland
+        - qt6-qt5compat
+        - qt6-qtimageformats
+        - qt6-qtmultimedia
+        # --- toolchain C/C++ ---
+        - gcc
+        - gcc-c++
+        - clang
+        - make
+        - cmake
+        - ninja-build
+        - gdb
+        - pkgconf-pkg-config
+        - glibc-devel
+        # --- Node / npx ---
+        # Fedora 44 nao tem mais o metapacote 'nodejs': so versionados.
+        # nodejs24-npm fornece /usr/bin/npm e /usr/bin/npx.
+        - nodejs24
+        - nodejs24-npm
+        # --- utilitarios ---
+        - fastfetch
+        - git
+        - curl
+        - wget2-wget
+        - zsh
+        - unzip
+        - tar
+        - jq
+        - just
+        # --- rede / VPN ---
+        - wireguard-tools
+        - mullvad-vpn
+        # --- containers ---
+        - docker-ce
+        - docker-ce-cli
+        - containerd.io
+        - docker-buildx-plugin
+        - docker-compose-plugin
+        # --- snap ---
+        - snapd
+        - snapd-selinux
+        # --- navegadores ---
+        - google-chrome-stable
+        - brave-browser
+
+  # ----------------------------------------------------------------------
+  # 4. Instalacoes fora de repo + patches de build
+  # ----------------------------------------------------------------------
+  - type: script
+    scripts:
+      - 20-install-dbeaver-tls.sh
+      - 30-install-antigravity.sh
+      - 40-enable-transient-root.sh
+      - 50-install-claude-cli.sh
+
+  # ----------------------------------------------------------------------
+  # 5. Servicos
+  # ----------------------------------------------------------------------
+  - type: systemd
+    system:
+      enabled:
+        - docker.service
+        - docker.socket
+        - containerd.service
+        - snapd.socket
+        - snapd.service
+        - snap.mount
+        - mullvad-daemon.service
+        - setup-user-groups.service
+        - homebrew-prepare.service
+    user:
+      enabled:
+        - custom-first-run.service
+        - custom-inir-update.timer
+
+  # ----------------------------------------------------------------------
+  # 6. Flatpaks de sistema
+  # ----------------------------------------------------------------------
+  - type: default-flatpaks
+    notify: true
+    system:
+      repo-url: https://dl.flathub.org/repo/flathub.flatpakrepo
+      repo-name: flathub
+      repo-title: "Flathub (system)"
+      install:
+        - com.slack.Slack
+        - com.github.IsmaelMartinez.teams_for_linux
+      remove: []
+
+  # ----------------------------------------------------------------------
+  # 7. Politica de assinatura cosign dentro da imagem
+  # ----------------------------------------------------------------------
+  - type: signing

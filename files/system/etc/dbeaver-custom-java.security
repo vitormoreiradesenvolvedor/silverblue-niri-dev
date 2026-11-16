@@ -1,0 +1,8 @@
+# Apontado por -Djava.security.properties em /usr/share/dbeaver-ce/dbeaver.ini
+# Sobrepoe somente esta propriedade do java.security do JRE embutido.
+# TLSv1 e TLSv1.1 foram REMOVIDOS da lista de bloqueio, habilitando conexoes
+# com servidores legados (Oracle/SQL Server antigos).
+jdk.tls.disabledAlgorithms=SSLv3, RC4, DES, MD5withRSA, DH keySize < 1024, EC keySize < 224, 3DES_EDE_CBC, anon, NULL
+
+# Alguns drivers tambem respeitam esta lista; mantida permissiva de proposito.
+jdk.tls.legacyAlgorithms=NULL, anon, RC4, DES, 3DES_EDE_CBC

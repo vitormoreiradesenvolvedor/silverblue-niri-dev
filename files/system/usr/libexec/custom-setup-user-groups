@@ -1,0 +1,27 @@
+#!/usr/bin/bash
+# Roda a cada boot: todo usuario humano (UID >= 1000, shell valido) entra em
+# docker e dialout. Necessario porque usuarios do Silverblue sao criados em
+# /var/home DEPOIS do build da imagem - nao da para fazer no Containerfile.
+set -euo pipefail
+
+for grp in docker dialout; do
+  getent group "${grp}" >/dev/null || groupadd -r "${grp}"
+done
+
+while IFS=: read -r user _ uid _ _ _ shell; do
+  [[ "${uid}" -ge 1000 ]] || continue
+  [[ "${uid}" -lt 65534 ]] || continue
+  case "${shell}" in
+    */nologin|*/false|"") continue ;;
+  esac
+  changed=()
+  for grp in docker dialout; do
+    if ! id -nG "${user}" | tr ' ' '\n' | grep -qx "${grp}"; then
+      changed+=("${grp}")
+    fi
+  done
+  if [[ ${#changed[@]} -gt 0 ]]; then
+    usermod -aG "$(IFS=,; echo "${changed[*]}")" "${user}"
+    echo "usuario ${user}: adicionado a ${changed[*]}"
+  fi
+done < /etc/passwd

@@ -1,0 +1,21 @@
+#!/usr/bin/bash
+# /home e symlink para /var/home no ostree: /home/linuxbrew nao pode ser criado
+# no build da imagem. Este oneshot cria o diretorio e transfere a posse para o
+# primeiro usuario humano, para que o servico de usuario (custom-first-run)
+# consiga instalar o Homebrew SEM sudo.
+set -euo pipefail
+
+BREW_ROOT="/home/linuxbrew/.linuxbrew"
+
+owner="$(awk -F: '$3 >= 1000 && $3 < 65534 { print $3" "$1 }' /etc/passwd \
+         | sort -n | head -n1 | cut -d' ' -f2)"
+
+if [[ -z "${owner}" ]]; then
+  echo "nenhum usuario humano ainda; homebrew-prepare sera reexecutado no proximo boot"
+  exit 0
+fi
+
+mkdir -p "${BREW_ROOT}"/{bin,etc,include,lib,sbin,share,var,opt,Homebrew,Cellar,Caskroom,Frameworks}
+chown -R "${owner}:${owner}" /home/linuxbrew
+chmod -R u+rwX,go+rX /home/linuxbrew
+echo "/home/linuxbrew pronto para ${owner}"

@@ -1,0 +1,29 @@
+#!/usr/bin/bash
+# PRIME render offload: roda UM aplicativo na dGPU NVIDIA.
+#
+# Em notebook hibrido o compositor (niri) deve permanecer na iGPU Intel -
+# ela e quem esta ligada no painel, e manter o Wayland na NVIDIA custa
+# bateria e quebra a saida de video. Entao nada de GBM_BACKEND global:
+# so o processo lancado por aqui vai para a dGPU.
+#
+#   nvidia-offload blender
+#   nvidia-offload steam
+#   nvidia-offload glxinfo | grep "OpenGL renderer"
+set -euo pipefail
+
+if [[ $# -eq 0 ]]; then
+    echo "uso: nvidia-offload <comando> [args...]" >&2
+    exit 64
+fi
+
+export __NV_PRIME_RENDER_OFFLOAD=1
+export __NV_PRIME_RENDER_OFFLOAD_PROVIDER=NVIDIA-G0
+export __GLX_VENDOR_LIBRARY_NAME=nvidia
+export __VK_LAYER_NV_optimus=NVIDIA_only
+export GBM_BACKEND=nvidia-drm
+
+if [[ -r /usr/share/vulkan/icd.d/nvidia_icd.json ]]; then
+    export VK_DRIVER_FILES=/usr/share/vulkan/icd.d/nvidia_icd.json
+fi
+
+exec "$@"

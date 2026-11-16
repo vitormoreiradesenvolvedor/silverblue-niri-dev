@@ -1,0 +1,7 @@
+[Unit]
+Description=Atualiza o desktop shell iNiR
+ConditionPathExists=%h/.local/share/inir-repo
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/custom-inir-update

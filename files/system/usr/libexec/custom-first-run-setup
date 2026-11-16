@@ -1,0 +1,96 @@
+#!/usr/bin/bash
+# Provisionamento no espaco do usuario (/var/home/$USER), executado pelo
+# servico systemd --user custom-first-run.service no primeiro login.
+#
+# Por que aqui e nao no build da imagem: /usr e /opt sao imutaveis e
+# /var/home nem existe no momento do build. iNiR, Homebrew, SDKMAN e rustup
+# gerenciam suas proprias versoes dentro do HOME, logo pertencem a esta etapa.
+#
+# Cada etapa tem um stamp proprio: o que deu certo nunca roda de novo, o que
+# falhou e tentado novamente no proximo login.
+set -uo pipefail
+
+STATE="${XDG_STATE_HOME:-${HOME}/.local/state}/custom-first-run"
+mkdir -p "${STATE}" "${HOME}/.local/bin" "${HOME}/.local/share"
+
+log() { printf '[first-run] %s\n' "$*"; }
+
+done_with() { [[ -f "${STATE}/$1.done" ]]; }
+mark_done() { touch "${STATE}/$1.done"; }
+
+run_step() {
+    local name="$1"; shift
+    if done_with "${name}"; then
+        log "${name}: ja provisionado"
+        return 0
+    fi
+    log "${name}: iniciando"
+    if "$@"; then
+        mark_done "${name}"
+        log "${name}: OK"
+    else
+        log "${name}: FALHOU (sera tentado no proximo login)"
+    fi
+}
+
+# ---------------------------------------------------------------- Homebrew
+step_homebrew() {
+    local root="/home/linuxbrew/.linuxbrew"
+    [[ -x "${root}/bin/brew" ]] && return 0
+    # homebrew-prepare.service (root) criou o diretorio e deu a posse ao usuario.
+    [[ -w "${root}" ]] || { log "homebrew: ${root} nao gravavel"; return 1; }
+    git clone --depth=1 https://github.com/Homebrew/brew "${root}/Homebrew" || return 1
+    ln -sf "${root}/Homebrew/bin/brew" "${root}/bin/brew"
+    NONINTERACTIVE=1 HOMEBREW_NO_ENV_HINTS=1 "${root}/bin/brew" update --force --quiet || true
+    "${root}/bin/brew" --version
+}
+
+# ------------------------------------------------------------------ SDKMAN
+step_sdkman() {
+    local dir="${HOME}/.sdkman"
+    [[ -s "${dir}/bin/sdkman-init.sh" ]] && return 0
+    curl -fsSL "https://get.sdkman.io?rcupdate=false" | bash || return 1
+    [[ -s "${dir}/bin/sdkman-init.sh" ]]
+}
+
+# ------------------------------------------------------------------ rustup
+step_rustup() {
+    command -v rustc >/dev/null 2>&1 && [[ -x "${HOME}/.cargo/bin/rustc" ]] && return 0
+    curl --proto '=https' --tlsv1.2 -fsSL https://sh.rustup.rs \
+        | sh -s -- -y --no-modify-path --profile default || return 1
+    "${HOME}/.cargo/bin/rustc" --version
+}
+
+# -------------------------------------------------------------------- iNiR
+step_inir() {
+    local repo_file="/etc/custom-inir-repo" url dir="${HOME}/.local/share/inir-repo"
+    url="$(grep -vE '^\s*(#|$)' "${repo_file}" 2>/dev/null | head -n1)"
+    if [[ -z "${url}" ]]; then
+        log "inir: nenhuma URL em ${repo_file}"
+        return 1
+    fi
+    if [[ -d "${dir}/.git" ]]; then
+        git -C "${dir}" pull --ff-only || return 1
+    else
+        git clone --depth=1 "${url}" "${dir}" || return 1
+    fi
+    cd "${dir}" || return 1
+    if [[ -x ./setup ]]; then
+        # Instalacao nao-interativa: alimenta respostas default e evita tty.
+        yes '' | ./setup install < /dev/null || return 1
+    elif [[ -x ./install.sh ]]; then
+        yes '' | ./install.sh < /dev/null || return 1
+    else
+        log "inir: nenhum script 'setup'/'install.sh' no repositorio"
+        return 1
+    fi
+    # Marca para o autostart do niri saber que o shell existe.
+    command -v qs-rs inir inir-cli >/dev/null 2>&1 || true
+}
+
+run_step homebrew step_homebrew
+run_step sdkman   step_sdkman
+run_step rustup   step_rustup
+run_step inir     step_inir
+
+log "provisionamento concluido"

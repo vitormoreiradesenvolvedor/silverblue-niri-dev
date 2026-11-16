@@ -1,0 +1,13 @@
+[Unit]
+Description=Adiciona usuarios humanos (UID >= 1000) aos grupos docker e dialout
+After=systemd-sysusers.service systemd-user-sessions.service
+Wants=systemd-sysusers.service
+ConditionPathExists=/usr/libexec/custom-setup-user-groups
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/libexec/custom-setup-user-groups
+
+[Install]
+WantedBy=multi-user.target
