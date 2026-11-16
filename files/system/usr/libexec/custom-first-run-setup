@@ -80,17 +80,30 @@ step_inir() {
         return 1
     fi
 
-    # -y          = assume os defaults, sem perguntar (nao ha tty aqui).
-    # --skip-deps = NAO deixa o setup instalar dependencias.
+    # O './setup' tem tres fases e duas delas exigem root:
     #
-    # O segundo e obrigatorio em sistema atomico: o setup usa o gerenciador de
-    # pacotes da distro e pede senha via sudo. Em Silverblue nao existe `dnf`
-    # utilizavel e o servico roda sem tty, entao o passo travaria. As
-    # dependencias ja vem resolvidas na camada RPM da imagem (niri, Qt6,
-    # pipewire, grim, slurp, wl-clipboard, brightnessctl, playerctl).
-    if ! ./setup install -y --skip-deps < /dev/null; then
-        log "inir: './setup install -y --skip-deps' falhou; tentando sem --skip-deps"
-        ./setup install -y < /dev/null || return 1
+    #   1 deps    - `sudo dnf upgrade` e instalacao de pacotes
+    #   2 setups  - `sudo groupadd/usermod`, /etc/modules-load.d, servicos
+    #   3 files   - escreve ~/.config, roda como o proprio usuario
+    #
+    # Este servico roda como usuario, sem tty e sem agente de autenticacao, de
+    # modo que qualquer sudo falha com "a terminal is required to read the
+    # password". Pulamos 1 e 2, e o que elas fariam ja vem na imagem:
+    #
+    #   deps   -> lista extraida de sdata/dist-fedora/install-deps.sh e posta
+    #             no modulo dnf da receita, com o COPR do quickshell 0.3
+    #   setups -> grupos video/input/i2c/network em custom-setup-user-groups e
+    #             /etc/modules-load.d/i2c-dev.conf
+    #
+    # --skip-sysupdate vai junto porque o `dnf upgrade` tambem mora na fase 1 e
+    # nao existe em sistema atomico (quem atualiza e o rpm-ostree).
+    #
+    # Sem fallback sem --skip-deps: em Silverblue ele so reproduz a falha,
+    # agora com uma caixa de senha que ninguem pode responder.
+    if ! ./setup install -y --skip-deps --skip-setups --skip-sysupdate < /dev/null; then
+        log "inir: './setup install' falhou; rode manualmente para ver o erro:"
+        log "inir:   cd ${dir} && ./setup install --skip-deps --skip-setups --skip-sysupdate"
+        return 1
     fi
 
     # O iNiR exige REINICIAR, nao basta relogar (doc oficial).

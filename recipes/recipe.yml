@@ -28,7 +28,17 @@ modules:
   # 3. Camada RPM
   # ----------------------------------------------------------------------
   - type: dnf
+    repos:
+      # O Fedora 44 empacota quickshell 0.2.1, e o iNiR exige >= 0.3: ele
+      # importa Quickshell.Networking e usa pragmas da 0.3. Este e o mesmo
+      # COPR que o instalador do iNiR habilitaria sozinho.
+      copr:
+        - errornointernet/quickshell
     install:
+      # wf-recorder e companhia puxam libs de ffmpeg que colidem com o
+      # ffmpeg-free da base; o instalador do iNiR usa --allowerasing pelo
+      # mesmo motivo.
+      allow-erasing: true
       packages:
         # --- compositor niri + sessao Wayland ---
         - niri
@@ -96,6 +106,104 @@ modules:
         # --- navegadores ---
         - google-chrome-stable
         - brave-browser
+        # ----------------------------------------------------------------
+        # Dependencias do iNiR
+        #
+        # Extraidas de sdata/dist-fedora/install-deps.sh do proprio iNiR e
+        # conferidas uma a uma contra o Fedora 44. Ficam na imagem porque a
+        # fase de dependencias do './setup' roda `sudo dnf`, que nao existe
+        # em sistema atomico e nem teria como pedir senha no first-run.
+        #
+        # Fora da lista de proposito:
+        #   sddm       - competiria com o gdm da base; o tema de login do
+        #                iNiR e opcional e a fase que trocaria o display
+        #                manager e justamente a que pulamos.
+        #   hyprpicker - saiu do Fedora 44; o iNiR compilaria na mao.
+        # ----------------------------------------------------------------
+        - ImageMagick
+        - NetworkManager
+        - adwaita-icon-theme
+        - blueman
+        - breeze-gtk
+        - cairo-devel
+        - cairo-gobject-devel
+        - cava
+        - cliphist
+        - coreutils
+        - dbus-devel
+        - ddcutil
+        - dejavu-fonts-all
+        - easyeffects
+        - eza
+        - ffmpegthumbnailer
+        - file
+        - fish
+        - fontconfig
+        - fprintd
+        - geoclue2
+        - glib2
+        - glib2-devel
+        - gnome-keyring
+        - google-noto-color-emoji-fonts
+        - gtk3-devel
+        - gum
+        - hicolor-icon-theme
+        - jemalloc
+        - jetbrains-mono-fonts-all
+        - kde-gtk-config
+        - kdialog
+        - kf6-kconfig
+        - kf6-kirigami
+        - kf6-syntax-highlighting
+        - kitty
+        - kvantum
+        - libdrm
+        - liberation-fonts-all
+        - libnotify
+        - libxcb
+        - lsp-plugins-lv2
+        - mesa-dri-drivers
+        - meson
+        - mpv
+        - nautilus
+        - nm-connection-editor
+        - papirus-icon-theme
+        - pavucontrol
+        - pipewire-alsa
+        - plasma-browser-integration
+        - plasma-integration
+        - polkit
+        - python3
+        - qalculate
+        - qt6-qttools
+        - qt6ct
+        - quickshell
+        - ripgrep
+        - rsync
+        - socat
+        - swappy
+        - swayidle
+        - swaylock
+        - tesseract
+        - tesseract-langpack-chi_sim
+        - tesseract-langpack-chi_sim_vert
+        - tesseract-langpack-chi_tra
+        - tesseract-langpack-chi_tra_vert
+        - tesseract-langpack-eng
+        - tesseract-langpack-jpn
+        - tesseract-langpack-jpn_vert
+        - tesseract-langpack-rus
+        - tesseract-langpack-spa
+        - translate-shell
+        - tumbler
+        - upower
+        - wf-recorder
+        - wlsunset
+        - wtype
+        - xdg-desktop-portal
+        - xdg-user-dirs
+        - ydotool
+        - yt-dlp
 
   # ----------------------------------------------------------------------
   # 4. Instalacoes fora de repo + patches de build

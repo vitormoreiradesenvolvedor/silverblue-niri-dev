@@ -1,10 +1,16 @@
 #!/usr/bin/bash
-# Roda a cada boot: todo usuario humano (UID >= 1000, shell valido) entra em
-# docker e dialout. Necessario porque usuarios do Silverblue sao criados em
+# Roda a cada boot: todo usuario humano (UID >= 1000, shell valido) entra nos
+# grupos abaixo. Necessario porque usuarios do Silverblue sao criados em
 # /var/home DEPOIS do build da imagem - nao da para fazer no Containerfile.
+#
+# docker/dialout: pedido do projeto.
+# video/input/i2c/network: o que o './setup' do iNiR poria com `sudo usermod`
+# na fase 2, que nao roda aqui (nao ha sudo utilizavel no first-run).
 set -euo pipefail
 
-for grp in docker dialout; do
+GRUPOS=(docker dialout video input i2c network)
+
+for grp in "${GRUPOS[@]}"; do
   getent group "${grp}" >/dev/null || groupadd -r "${grp}"
 done
 
@@ -15,7 +21,7 @@ while IFS=: read -r user _ uid _ _ _ shell; do
     */nologin|*/false|"") continue ;;
   esac
   changed=()
-  for grp in docker dialout; do
+  for grp in "${GRUPOS[@]}"; do
     if ! id -nG "${user}" | tr ' ' '\n' | grep -qx "${grp}"; then
       changed+=("${grp}")
     fi

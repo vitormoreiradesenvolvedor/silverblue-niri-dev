@@ -1,12 +1,21 @@
 #!/usr/bin/bash
+# Atualizacao semanal do iNiR (timer de usuario).
+#
+# Roda sem tty e sem agente de autenticacao, igual ao first-run: qualquer
+# `sudo` ou `pkexec` aqui falha ou abre uma caixa de senha que ninguem
+# responde. SKIP_ALLDEPS faz o proprio setup tratar os pacotes como "seus",
+# que e exatamente o caso: quem os instala e a camada RPM da imagem.
 set -uo pipefail
 dir="${HOME}/.local/share/inir-repo"
 cd "${dir}" || exit 0
 git pull --ff-only || exit 0
+
+export SKIP_ALLDEPS=true
+
 if command -v inir-cli >/dev/null 2>&1; then
     inir-cli update || true
 elif command -v inir >/dev/null 2>&1; then
     inir update || true
 elif [[ -x ./setup ]]; then
-    yes '' | ./setup install < /dev/null || true
+    ./setup install -y --skip-deps --skip-setups --skip-sysupdate < /dev/null || true
 fi
