@@ -95,14 +95,64 @@ step_inir() {
     #   setups -> grupos video/input/i2c/network em custom-setup-user-groups e
     #             /etc/modules-load.d/i2c-dev.conf
     #
+    #   fontes -> 60-install-inir-fonts.sh poe Material Symbols e JetBrainsMono
+    #             Nerd em /usr/share/fonts; o setup as baixaria na fase 1
+    #
     # --skip-sysupdate vai junto porque o `dnf upgrade` tambem mora na fase 1 e
     # nao existe em sistema atomico (quem atualiza e o rpm-ostree).
     #
     # Sem fallback sem --skip-deps: em Silverblue ele so reproduz a falha,
     # agora com uma caixa de senha que ninguem pode responder.
-    if ! ./setup install -y --skip-deps --skip-setups --skip-sysupdate < /dev/null; then
-        log "inir: './setup install' falhou; rode manualmente para ver o erro:"
-        log "inir:   cd ${dir} && ./setup install --skip-deps --skip-setups --skip-sysupdate"
+    log "inir: fases 1 e 2 vem da imagem (pacotes, grupos, i2c-dev, fontes);"
+    log "inir: rodando a fase 3 (arquivos de configuracao do usuario)"
+
+    local saida tentativa pendentes pronto=0
+    saida="$(mktemp)"
+
+    # Ate 3 passadas. O catalogo do Hub (as familias de widgets, sem as quais o
+    # shell sobe vazio) resolve dependencia entre itens em tempo de instalacao
+    # e falha o lote inteiro citando o que falta, no formato
+    #   "inircam needs inircam-widget: inir hub install inircam-widget".
+    # Cada passada instala o que a anterior pediu e tenta de novo.
+    # O comando `inir` nasce em ~/.local/share/inir/cli e pode nao estar no PATH
+    # deste servico; o Hub mora dentro dele.
+    local inir_cli="${XDG_DATA_HOME:-${HOME}/.local/share}/inir/cli/inir"
+    command -v inir >/dev/null 2>&1 && inir_cli=inir
+
+    for tentativa in 1 2 3; do
+        # O status aqui seria o do `tee`; quem decide e o conteudo da saida.
+        ./setup install -y --skip-deps --skip-setups --skip-sysupdate \
+            < /dev/null 2>&1 | tee "${saida}"
+
+        if ! grep -q "nothing to show\|Could not install the families" "${saida}"; then
+            pronto=1
+            break
+        fi
+
+        # Os ids que o proprio erro manda instalar.
+        pendentes="$(grep -oE 'inir hub install [A-Za-z0-9_.-]+' "${saida}" \
+            | awk '{print $NF}' | sort -u | tr '\n' ' ')"
+        if [[ -z "${pendentes// /}" ]]; then
+            log "inir: familias do Hub nao instalaram e o erro nao disse o que falta"
+            log "inir: veja com 'inir hub status --json'"
+            rm -f "${saida}"
+            return 1
+        fi
+
+        log "inir: Hub pediu ${pendentes}- instalando (tentativa ${tentativa})"
+        # shellcheck disable=SC2086
+        if [[ "${inir_cli}" != inir && ! -x "${inir_cli}" ]]; then
+            log "inir: comando 'inir' nao encontrado; o Hub vive dentro dele"
+            rm -f "${saida}"
+            return 1
+        fi
+        "${inir_cli}" hub install ${pendentes} < /dev/null || true
+    done
+
+    rm -f "${saida}"
+    if [[ "${pronto}" -ne 1 ]]; then
+        log "inir: familias do Hub nao completaram em 3 tentativas"
+        log "inir: rode 'inir doctor' e depois './setup install' no terminal"
         return 1
     fi
 

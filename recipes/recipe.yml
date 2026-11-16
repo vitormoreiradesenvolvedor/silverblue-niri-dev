@@ -214,6 +214,7 @@ modules:
       - 30-install-antigravity.sh
       - 40-enable-transient-root.sh
       - 50-install-claude-cli.sh
+      - 60-install-inir-fonts.sh
 
   # ----------------------------------------------------------------------
   # 5. Servicos
