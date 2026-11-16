@@ -222,6 +222,35 @@ brew upgrade
 
 ## Se algo der errado
 
+### A tela do niri sobe vazia e o log diz "the shell has nothing to show"
+
+```
+inir hub: inircam needs inircam-widget: inir hub install inircam-widget
+X Could not install the families from the hub, so the shell has nothing to show.
+```
+
+O shell base do iNiR vem **sem nenhuma família** — os conjuntos de widgets vêm
+do catálogo (o Hub) na hora da instalação. Quando uma dependência entre itens
+do catálogo não resolve, o lote inteiro falha e a tela fica vazia.
+
+Não é falta de rede (`inir hub status` responde normalmente), não é sudo e não
+tem relação com sistema atômico: acontece igual em Fedora comum. Resolve com o
+comando que o próprio erro cita, seguido de uma segunda passada do setup:
+
+```bash
+inir hub install inircam-widget
+cd ~/.local/share/inir-repo
+./setup install -y --skip-deps --skip-setups --skip-sysupdate
+systemctl reboot
+```
+
+Para ver o catálogo inteiro e os nomes reais dos itens:
+
+```bash
+inir hub status --json | jq -r '.items[] | "\(.id)  kind=\(.kind)  installed=\(.installed)"'
+```
+
+
 **A tela fica preta ao entrar no niri**
 GPU híbrida: o niri pode ter escolhido a NVIDIA em vez da Intel. Entre numa
 sessão GNOME/console (Ctrl+Alt+F3), e em `~/.config/niri/config.kdl`
