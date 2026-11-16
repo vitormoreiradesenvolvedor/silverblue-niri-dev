@@ -51,16 +51,37 @@ Falhou? `gh run view --log-failed` mostra o passo que quebrou.
 
 ## Passo 2 — Gerar o ISO instalável
 
-O `config.toml` cria seu usuário. **Sem ele a instalação termina sem login
-nenhum.** Troque a senha abaixo.
+Neste notebook (o que já funciona), dentro do repositório:
+
+```bash
+cd ~/Downloads/silverblue-niri-dev
+./gerar-iso.sh
+```
+
+Ele pergunta o usuário e a senha inicial do sistema novo, pede sua senha do
+sudo e gera `output/bootiso/install.iso`. Baixa ~5 GB e leva de 10 a 25 minutos.
+
+O script monta o `config.toml` num arquivo temporário fora do repositório e o
+apaga ao terminar — a senha **não** fica gravada aqui. Para não digitar nada:
+
+```bash
+USUARIO=vmoreira SENHA='sua-senha' ./gerar-iso.sh
+```
+
+Para uma máquina virtual em vez de pendrive: `TIPO=qcow2 ./gerar-iso.sh`.
+
+<details>
+<summary>Comando manual equivalente (se preferir sem o script)</summary>
 
 ```bash
 mkdir -p ~/iso-niri/output && cd ~/iso-niri
 
+# A senha vai em hash, não em texto puro:
+#   openssl passwd -6 'sua-senha'
 cat > config.toml <<'TOML'
 [[customizations.user]]
 name = "vmoreira"
-password = "troque-esta-senha"
+password = "$6$cole-o-hash-aqui"
 groups = ["wheel", "docker", "dialout"]
 TOML
 
@@ -71,10 +92,17 @@ sudo podman run --rm -it --privileged --pull=newer \
   -v "$PWD/output":/output \
   quay.io/centos-bootc/bootc-image-builder:latest \
   --type anaconda-iso \
+  --config /config.toml \
   ghcr.io/vitormoreiradesenvolvedor/silverblue-niri-dev:latest
 ```
 
-Demora de 10 a 20 minutos. O ISO sai em `~/iso-niri/output/bootiso/install.iso`.
+O `--config /config.toml` é obrigatório. Sem ele o builder monta o arquivo mas
+não o lê, e o sistema instala **sem usuário nenhum** — tela de login sem conta.
+
+</details>
+
+O ISO sai em `output/bootiso/install.iso` (ou `~/iso-niri/output/...` no modo
+manual). Os passos seguintes usam o primeiro caminho.
 
 ---
 
@@ -89,7 +117,7 @@ lsblk -o NAME,SIZE,MODEL,TRAN
 Procure o de tamanho igual ao seu pendrive, com `TRAN=usb`. Supondo `/dev/sdb`:
 
 ```bash
-sudo dd if=~/iso-niri/output/bootiso/install.iso of=/dev/sdb \
+sudo dd if=output/bootiso/install.iso of=/dev/sdb \
   bs=4M status=progress oflag=direct conv=fsync
 sync
 ```
