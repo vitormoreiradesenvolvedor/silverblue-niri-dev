@@ -92,17 +92,27 @@ sudo podman run --rm -it --privileged --pull=newer \
   -v "$PWD/output":/output \
   quay.io/centos-bootc/bootc-image-builder:latest \
   --type anaconda-iso \
+  --rootfs ext4 \
   --config /config.toml \
   ghcr.io/vitormoreiradesenvolvedor/silverblue-niri-dev:latest
 ```
 
-O `--config /config.toml` é obrigatório. Sem ele o builder monta o arquivo mas
-não o lê, e o sistema instala **sem usuário nenhum** — tela de login sem conta.
+Duas flags são obrigatórias e falham de formas diferentes:
+
+- `--config /config.toml` — sem ela o builder monta o arquivo mas não o lê, e o
+  sistema instala **sem usuário nenhum**, tela de login sem conta.
+- `--rootfs ext4` — sem ela o build aborta com
+  `no default root filesystem type specified in container`.
+
+E a imagem precisa estar na storage do podman **root** antes
+(`sudo podman pull ...`): versões recentes do builder não a baixam sozinhas.
 
 </details>
 
 O ISO sai em `output/bootiso/install.iso` (ou `~/iso-niri/output/...` no modo
 manual). Os passos seguintes usam o primeiro caminho.
+
+**São ~7,6 GB.** Um pendrive de 8 GB serve, mas por pouco; de 16 GB é folga.
 
 ---
 

@@ -14,6 +14,10 @@ set -euo pipefail
 IMAGEM="${IMAGEM:-ghcr.io/vitormoreiradesenvolvedor/silverblue-niri-dev:latest}"
 BUILDER="${BUILDER:-quay.io/centos-bootc/bootc-image-builder:latest}"
 TIPO="${TIPO:-anaconda-iso}"   # anaconda-iso = instalador em pendrive; qcow2 = VM
+# As imagens Universal Blue nao trazem /usr/lib/bootc/install/*.toml, entao o
+# builder nao sabe qual filesystem usar na raiz e aborta. ext4 e o caminho mais
+# testado do bootc-image-builder; xfs e btrfs tambem valem (ROOTFS=btrfs).
+ROOTFS="${ROOTFS:-ext4}"
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SAIDA="$RAIZ/output"
 
@@ -57,15 +61,47 @@ mkdir -p "$SAIDA"
 echo
 echo "Imagem : $IMAGEM"
 echo "Tipo   : $TIPO"
+echo "Raiz   : $ROOTFS"
 echo "Saida  : $SAIDA"
 echo "Baixa ~5 GB e leva de 10 a 25 minutos. Sudo vai pedir sua senha."
 echo
 
+# Sem tty (rodando dentro de um agente, de um cron, de um pipe) o sudo nao
+# consegue perguntar nada e o podman nao pode alocar terminal.
+SUDO=(sudo)
+PODMAN_TTY=(-it)
+if [[ ! -t 0 ]]; then
+    PODMAN_TTY=()
+    if ! sudo -n true 2>/dev/null; then
+        # -A faz o sudo pedir a senha por um helper grafico, numa janela.
+        ASKPASS="${SUDO_ASKPASS:-}"
+        if [[ -z "$ASKPASS" ]]; then
+            for cand in /usr/bin/ksshaskpass /usr/libexec/openssh/ssh-askpass \
+                        /usr/libexec/seahorse/ssh-askpass; do
+                [[ -x "$cand" ]] && { ASKPASS="$cand"; break; }
+            done
+        fi
+        if [[ -z "$ASKPASS" ]]; then
+            echo "Sem tty e sem helper de senha grafico. Rode este script" >&2
+            echo "direto no terminal, ou exporte SUDO_ASKPASS." >&2
+            exit 1
+        fi
+        export SUDO_ASKPASS="$ASKPASS"
+        SUDO=(sudo -A)
+        echo "Digite a senha do sudo na janela que vai abrir."
+    fi
+fi
+
+# Versoes recentes do bootc-image-builder nao puxam mais a imagem: ela tem de
+# estar na storage do podman ROOT antes, senao morre com "image not known".
+echo "Baixando $IMAGEM para a storage do root..."
+"${SUDO[@]}" podman pull "$IMAGEM"
+
 # --privileged                      : loop devices e mount
 # --security-opt label=type:unconfined_t : SELinux no host atomico
 # -v /var/lib/containers/storage    : reaproveita a storage do podman root
-sudo podman run \
-    --rm -it \
+"${SUDO[@]}" podman run \
+    --rm "${PODMAN_TTY[@]}" \
     --privileged \
     --pull=newer \
     --security-opt label=type:unconfined_t \
@@ -74,12 +110,13 @@ sudo podman run \
     -v /var/lib/containers/storage:/var/lib/containers/storage \
     "$BUILDER" \
     --type "$TIPO" \
+    --rootfs "$ROOTFS" \
     --config /config.toml \
     "$IMAGEM"
 
 echo
 echo "Pronto. Arquivos gerados:"
-sudo find "$SAIDA" -type f \( -name '*.iso' -o -name '*.qcow2' \) -printf '%p  (%s bytes)\n'
+"${SUDO[@]}" find "$SAIDA" -type f \( -name '*.iso' -o -name '*.qcow2' \) -printf '%p  (%s bytes)\n'
 echo
 echo "O instalador cria o usuario '$USUARIO' com a senha que voce digitou."
 echo "Troque a senha depois do primeiro login: passwd"

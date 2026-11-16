@@ -1,0 +1,8 @@
+# Tipo de filesystem da raiz usado por `bootc install` e pelo
+# bootc-image-builder ao gerar ISO/qcow2 desta imagem.
+#
+# As imagens ublue-os/silverblue nao trazem este arquivo (Aurora e Bazzite
+# trazem, com btrfs), e sem ele o builder aborta:
+#   error: no default root filesystem type specified in container
+[install]
+root-fs-type = "ext4"
