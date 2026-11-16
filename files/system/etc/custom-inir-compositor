@@ -1,0 +1,11 @@
+# Onde o iNiR roda. Valores: niri, umbriel, both.
+#
+# O iNiR suporta os dois compositores e descobre sozinho sob qual esta
+# rodando; quem escolhe e voce, na tela de login. Esta linha decide apenas
+# onde o first-run instala a configuracao do shell.
+#
+# Trocar depois, sem reinstalar nada:
+#   inir compositor add niri
+#   inir compositor remove umbriel
+#   inir compositor            (mostra o estado atual)
+umbriel

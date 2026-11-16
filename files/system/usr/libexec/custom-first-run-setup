@@ -103,8 +103,22 @@ step_inir() {
     #
     # Sem fallback sem --skip-deps: em Silverblue ele so reproduz a falha,
     # agora com uma caixa de senha que ninguem pode responder.
+    # Compositor: o iNiR roda em Niri e em Umbriel, e sem terminal para
+    # perguntar e --compositor que decide. 'umbriel' poe o iNiR so no Umbriel;
+    # o Niri continua instalado e selecionavel na tela de login, mas sem o
+    # shell. Para ter os dois: 'both', ou `inir compositor add niri` depois.
+    local compositor_file=/etc/custom-inir-compositor compositor=umbriel
+    if [[ -r "${compositor_file}" ]]; then
+        compositor="$(grep -vE '^\s*(#|$)' "${compositor_file}" | head -n1)"
+    fi
+    case "${compositor}" in
+        niri|umbriel|both) ;;
+        *) log "inir: compositor '${compositor}' invalido; usando umbriel"
+           compositor=umbriel ;;
+    esac
+
     log "inir: fases 1 e 2 vem da imagem (pacotes, grupos, i2c-dev, fontes);"
-    log "inir: rodando a fase 3 (arquivos de configuracao do usuario)"
+    log "inir: rodando a fase 3 (arquivos de configuracao) no compositor ${compositor}"
 
     local saida tentativa pendentes pronto=0
     saida="$(mktemp)"
@@ -122,7 +136,7 @@ step_inir() {
     for tentativa in 1 2 3; do
         # O status aqui seria o do `tee`; quem decide e o conteudo da saida.
         ./setup install -y --skip-deps --skip-setups --skip-sysupdate \
-            < /dev/null 2>&1 | tee "${saida}"
+            --compositor "${compositor}" < /dev/null 2>&1 | tee "${saida}"
 
         if ! grep -q "nothing to show\|Could not install the families" "${saida}"; then
             pronto=1

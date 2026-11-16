@@ -9,6 +9,8 @@ KEYS=(
   "https://dl.google.com/linux/linux_signing_key.pub"
   "https://brave-browser-rpm-release.s3.brave.com/brave-core.asc"
   "https://repository.mullvad.net/rpm/mullvad-keyring.asc"
+  # Terra traz o Umbriel; a URL tem a versao do Fedora da imagem.
+  "https://repos.fyralabs.com/terra$(rpm -E %fedora)/key.asc"
 )
 
 for key in "${KEYS[@]}"; do

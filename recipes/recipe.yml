@@ -40,8 +40,12 @@ modules:
       # mesmo motivo.
       allow-erasing: true
       packages:
-        # --- compositor niri + sessao Wayland ---
+        # --- compositores + sessao Wayland ---
+        # O iNiR roda em Niri e em Umbriel. O Umbriel so existe no Terra
+        # (repositorio da Fyra Labs), como pacote nightly; e a mesma fonte
+        # que o `inir compositor add umbriel` usaria no Fedora.
         - niri
+        - umbriel-nightly
         - xwayland-satellite
         - mate-polkit
         - pipewire
