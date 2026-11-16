@@ -130,16 +130,17 @@ modules:
   # ----------------------------------------------------------------------
   # 6. Flatpaks de sistema
   # ----------------------------------------------------------------------
+  # Schema v2: 'configurations' substituiu os blocos system/user, os campos
+  # repo-* viraram repo.{url,name,title} e 'remove' deixou de existir.
+  # O bloco 'repo' e omitido de proposito: as imagens Universal Blue ja trazem
+  # o remote Flathub de sistema configurado, e Flathub e o default do modulo.
   - type: default-flatpaks
-    notify: true
-    system:
-      repo-url: https://dl.flathub.org/repo/flathub.flatpakrepo
-      repo-name: flathub
-      repo-title: "Flathub (system)"
-      install:
-        - com.slack.Slack
-        - com.github.IsmaelMartinez.teams_for_linux
-      remove: []
+    configurations:
+      - scope: system
+        notify: true
+        install:
+          - com.slack.Slack
+          - com.github.IsmaelMartinez.teams_for_linux
 
   # ----------------------------------------------------------------------
   # 7. Politica de assinatura cosign dentro da imagem
