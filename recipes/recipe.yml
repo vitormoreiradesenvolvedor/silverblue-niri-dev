@@ -2,7 +2,7 @@
 ---
 name: silverblue-niri-dev
 description: Fedora Silverblue + niri/iNiR + NVIDIA hibrida + toolchains nativos (Docker, Node, C/C++, Mullvad, DBeaver TLS1.0)
-base-image: ghcr.io/ublue-os/silverblue-nvidia-open
+base-image: ghcr.io/ublue-os/silverblue-nvidia
 image-version: 44
 
 modules:

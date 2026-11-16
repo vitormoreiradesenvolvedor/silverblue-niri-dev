@@ -8,9 +8,15 @@ Compositor **niri** + desktop shell **iNiR**, toolchains de desenvolvimento
 nativos na camada RPM, Docker CE, snapd funcional em OSTree, Mullvad VPN e
 DBeaver Community com **TLS 1.0/1.1 reabilitado de forma permanente**.
 
-Base: `ghcr.io/ublue-os/silverblue-nvidia-open` — driver NVIDIA aberto incluso,
-para notebook **hibrido Intel+NVIDIA**. Em maquina sem NVIDIA, troque para
+Base: `ghcr.io/ublue-os/silverblue-nvidia` — driver NVIDIA incluso, para
+notebook **hibrido Intel+NVIDIA**. Em maquina sem NVIDIA, troque para
 `ghcr.io/ublue-os/silverblue-main` em `recipes/recipe.yml`.
+
+> O Universal Blue **nao publica** variante `-nvidia-open` das imagens desktop
+> (`silverblue-nvidia-open` e `kinoite-nvidia-open` retornam 403; so existem
+> para Aurora/Bazzite). Entao a base usa o driver **proprietario**
+> (`akmod-nvidia`), nao os kernel modules abertos. Funciona igual em hibrido;
+> a diferenca aparece so em GPU muito nova, onde o aberto e o recomendado.
 
 ---
 
@@ -32,7 +38,7 @@ para notebook **hibrido Intel+NVIDIA**. Em maquina sem NVIDIA, troque para
 | Comunicacao | Slack e Teams (`teams-for-linux`) via Flatpak de sistema |
 | IDEs | **Antigravity IDE** (ver secao 6), **DBeaver CE** com TLS 1.0 liberado |
 | Pacotes | Flatpak + Flathub pre-configurado, **snapd nativo com `/snap` funcional** |
-| GPU | Driver NVIDIA aberto (base `nvidia-open`) + `nvidia-offload` para PRIME render offload |
+| GPU | Driver NVIDIA proprietario (base `silverblue-nvidia`) + `nvidia-offload` para PRIME render offload |
 | Espaco do usuario | Homebrew, SDKMAN!, rustup/cargo provisionados no primeiro login |
 
 Grupos `docker` e `dialout` sao garantidos por `sysusers.d` e aplicados a todo
@@ -87,7 +93,7 @@ O workflow roda no push, toda segunda-feira as 06:00 UTC e sob demanda
    (ver secao 6). Sem ela a imagem e construida sem o IDE, com aviso no log.
 3. **`image-version`** em `recipes/recipe.yml` — fixado em `44`.
    Troque ao migrar de release do Fedora.
-   **`base-image`** esta em `silverblue-nvidia-open` (notebook hibrido).
+   **`base-image`** esta em `silverblue-nvidia` (notebook hibrido).
    Sem NVIDIA: `silverblue-main`.
 4. **Layout de teclado** — `files/system/etc/skel/.config/niri/config.kdl`
    esta em `br`.
