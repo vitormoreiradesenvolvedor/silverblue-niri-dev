@@ -10,37 +10,42 @@ Imagem: `ghcr.io/vitormoreiradesenvolvedor/silverblue-niri-dev:latest`
 ## O que você precisa
 
 - Pendrive de 8 GB ou mais (**será apagado**)
-- O build do GitHub Actions concluído (passo 1)
 - ~20 GB livres neste notebook para gerar o ISO
+- `podman` (já vem no Aurora/Silverblue)
 
 ---
 
-## Passo 1 — Confirmar que a imagem foi publicada
+## Passo 1 — Confirmar que a imagem está no ar
 
-```bash
-cd ~/Downloads/silverblue-niri-dev
-gh run watch
+Já está publicada e **pública**, com assinatura verificada:
+
+```
+ghcr.io/vitormoreiradesenvolvedor/silverblue-niri-dev:latest
+digest sha256:426dad87a05012bea348f1207dd18ae5bdcd84da27c49003c7006430c0766bef
 ```
 
-Espere `completed success`. O primeiro build leva de 30 a 50 minutos.
-
-Deu erro? Veja o log do passo que falhou:
-
-```bash
-gh run view --log-failed
-```
-
-Depois, **torne o pacote público** (uma vez só), senão a instalação pedirá
-login no ghcr:
-
-GitHub → sua foto → **Packages** → `silverblue-niri-dev` →
-*Package settings* → *Change visibility* → **Public**
-
-Confirme que está acessível:
+Confira que baixa sem login:
 
 ```bash
 podman pull ghcr.io/vitormoreiradesenvolvedor/silverblue-niri-dev:latest
 ```
+
+Conferir a assinatura (opcional, mas é o motivo de existir o `cosign.pub`):
+
+```bash
+cd ~/Downloads/silverblue-niri-dev
+podman run --rm --user 0 -v "$PWD":/w:z -w /w gcr.io/projectsigstore/cosign:latest \
+  verify --key cosign.pub \
+  ghcr.io/vitormoreiradesenvolvedor/silverblue-niri-dev:latest
+```
+
+Builds futuros rodam sozinhos toda segunda, 06:00 UTC. Para acompanhar um:
+
+```bash
+cd ~/Downloads/silverblue-niri-dev && gh run watch
+```
+
+Falhou? `gh run view --log-failed` mostra o passo que quebrou.
 
 ---
 

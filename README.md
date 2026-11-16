@@ -418,7 +418,37 @@ brew install blue-build/tap/bluebuild   # ou: npm i -g @blue-build/cli
 bluebuild build recipes/recipe.yml      # precisa de podman/docker + ~30 GB livres
 ```
 
-## 10. Diagnostico
+## 10. Verificacao da imagem publicada
+
+Conferido na imagem `latest` (digest `sha256:426dad87`), nao no codigo-fonte:
+
+| Item | Resultado |
+|---|---|
+| Patch TLS do DBeaver | `-Djava.security.properties=/etc/dbeaver-custom-java.security` presente logo apos `-vmargs`; a propriedade `jdk.tls.disabledAlgorithms` nao lista `TLSv1` nem `TLSv1.1` |
+| Raiz transiente | `[root] transient = true` em `/usr/lib/ostree/prepare-root.conf` |
+| Binarios | `claude`, `node`, `npm`, `npx`, `niri`, `docker`, `wget`, `snap`, `nvidia-offload` todos em `/usr/bin` |
+| Units de sistema | `docker`, `containerd`, `snapd.socket`, `snap.mount`, `setup-user-groups`, `homebrew-prepare` — todas `enabled` |
+| Units de usuario | `custom-first-run.service`, `custom-inir-update.timer` — `enabled` globalmente |
+| Skel e helpers | `config.kdl`, `.zshrc`, `custom-dev-env.sh`, `custom-inir-repo`, `custom-first-run-setup`, `custom-groups.conf` presentes |
+| URL do iNiR | `https://github.com/snowarch/iNiR.git` |
+| Assinatura | `cosign verify --key cosign.pub` valida contra o digest publicado |
+
+Versoes na imagem:
+
+```
+niri 26.04       docker-ce 29.10.0     mullvad-vpn 2026.5
+dbeaver-ce 26.2.5  chrome 157.0.8103.78  brave 1.99.57
+snapd 2.77.1     nodejs24 24.18.0      mate-polkit 1.28.1
+nvidia-driver 620.70.06 + kmod-nvidia 620.70.06
+```
+
+O driver NVIDIA vem como `kmod-nvidia` pre-compilado pelo Universal Blue, nao
+como `akmod-nvidia` (que compilaria no boot). Os modulos ficam em
+`/usr/lib/modules/<kernel>/extra/nvidia/`.
+
+---
+
+## 11. Diagnostico
 
 ```bash
 rpm-ostree status                              # qual imagem esta em uso
